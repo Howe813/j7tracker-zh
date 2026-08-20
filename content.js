@@ -18,12 +18,13 @@
     ui: 'j7zh_enabled',        // 界面汉化     默认开
     reader: 'j7zh_reader',     // 阅读模式     默认开
     trans: 'j7zh_autotrans',   // 正文翻译     默认开
-    engine: 'j7zh_engine'      // 翻译引擎     auto | local | google
+    engine: 'j7zh_engine',     // 翻译引擎     auto | local | google
+    copykw: 'j7zh_copykw'      // 点击关键词复制 默认开
   };
   const getFlag = (k, def) => { try { const v = localStorage.getItem(k); return v === null ? def : v !== '0'; } catch (e) { return def; } };
   const setFlag = (k, v) => { try { localStorage.setItem(k, v ? '1' : '0'); } catch (e) {} };
   const getStr = (k, def) => { try { return localStorage.getItem(k) || def; } catch (e) { return def; } };
-  const S = { ui: getFlag(LS.ui, true), reader: getFlag(LS.reader, true), trans: getFlag(LS.trans, true), engine: getStr(LS.engine, 'auto') };
+  const S = { ui: getFlag(LS.ui, true), reader: getFlag(LS.reader, true), trans: getFlag(LS.trans, true), engine: getStr(LS.engine, 'auto'), copykw: getFlag(LS.copykw, true) };
   if (!/^(auto|local|google)$/.test(S.engine)) S.engine = 'auto';
 
   /* ---------- 字典索引 ---------- */
@@ -518,16 +519,107 @@
 
   let scanTimer = null;
   const scanPending = new Set();
+  function processScan(n) {
+    tagKeywords(n);
+    if (S.trans) scanUnits(n);
+  }
   function scheduleScan(node) {
-    if (!S.trans) return;
+    if (!S.trans && !S.copykw) return;
     scanPending.add(node || document.body);
     if (scanTimer) return;
     scanTimer = setTimeout(() => {
       scanTimer = null;
       const batch = [...scanPending]; scanPending.clear();
-      if (batch.some((n) => n === document.body)) scanUnits(document.body);
-      else batch.forEach((n) => { if (n.isConnected) scanUnits(n); });
+      if (batch.some((n) => n === document.body)) processScan(document.body);
+      else batch.forEach((n) => { if (n.isConnected) processScan(n); });
     }, 250);
+  }
+
+  /* =====================================================================
+   *  点击关键词复制
+   *  站点把关键词（AI 预测名、黄色关键词、CA 等）包在正文里的裸 <span> 中并加药丸样式；
+   *  给这些 span 打上 .j7zh-kw，点击即复制其文字，弹小气泡确认。
+   * ===================================================================== */
+  const KW_SCOPE = '.tweet-content, .quoted-tweet-content, .nested-quoted-tweet-content, .pinned-tweet-content, .quote-comment';
+
+  function isPillSpan(sp) {
+    if (sp.children.length) return false;
+    const txt = (sp.textContent || '').trim();
+    if (!txt || txt.length > 120) return false;
+    const cs = getComputedStyle(sp);
+    const bg = cs.backgroundColor;
+    const hasBg = bg && bg !== 'transparent' && !/rgba\(\s*\d+,\s*\d+,\s*\d+,\s*0\s*\)/.test(bg);
+    const hasBorder = parseFloat(cs.borderTopWidth) > 0 && !/rgba\(\s*\d+,\s*\d+,\s*\d+,\s*0\s*\)/.test(cs.borderTopColor);
+    return hasBg || hasBorder;
+  }
+
+  function tagKeywords(root) {
+    if (!S.copykw) return;
+    const scope = root && root.nodeType === 1 && root.querySelectorAll ? root : document.body;
+    if (!scope) return;
+    let spans;
+    try { spans = scope.querySelectorAll('span:not(.j7zh-kw):not([class])'); } catch (e) { return; }
+    for (const sp of spans) {
+      if (!sp.closest(KW_SCOPE)) continue;
+      if (sp.closest('.j7zh-trans, #j7zh-menu, a, button, .tweet-translation')) continue;
+      if (!isPillSpan(sp)) continue;
+      sp.classList.add('j7zh-kw');
+      if (!sp.getAttribute('title')) sp.setAttribute('title', '点击复制');
+    }
+  }
+
+  function copyTextToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).then(() => true).catch(() => legacyCopy(text));
+    }
+    return Promise.resolve(legacyCopy(text));
+  }
+  function legacyCopy(text) {
+    try {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      ta.style.cssText = 'position:fixed;left:-9999px;top:0;opacity:0';
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand('copy');
+      ta.remove();
+      return ok;
+    } catch (e) { return false; }
+  }
+
+  let toastTimer = null;
+  function showToast(x, y, text, ok) {
+    let t = document.getElementById('j7zh-toast');
+    if (!t) { t = document.createElement('div'); t.id = 'j7zh-toast'; (document.body || document.documentElement).appendChild(t); }
+    t.textContent = text;
+    t.classList.toggle('j7zh-toast-err', !ok);
+    const pad = 14;
+    t.style.left = Math.min(Math.max(x, 60), innerWidth - 160) + 'px';
+    t.style.top = Math.max(y - 38, pad) + 'px';
+    t.classList.add('j7zh-toast-show');
+    if (toastTimer) clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => { t.classList.remove('j7zh-toast-show'); }, 1200);
+  }
+
+  document.addEventListener('click', (e) => {
+    if (!S.copykw) return;
+    const kw = e.target && e.target.closest ? e.target.closest('.j7zh-kw') : null;
+    if (!kw) return;
+    const sel = window.getSelection && window.getSelection();
+    if (sel && sel.toString().trim()) return; // 用户在选字，不抢
+    const txt = (kw.textContent || '').trim();
+    if (!txt) return;
+    e.preventDefault();
+    e.stopPropagation();
+    copyTextToClipboard(txt).then((ok) => {
+      const short = txt.length > 24 ? txt.slice(0, 24) + '…' : txt;
+      showToast(e.clientX, e.clientY, ok ? '已复制：' + short : '复制失败', ok);
+    });
+  }, true);
+
+  function applyCopyKw() {
+    document.documentElement.classList.toggle('j7zh-copykw', !!S.copykw);
+    if (S.copykw) tagKeywords(document.body);
   }
 
   /* ---------- 观察器（同步处理，后台标签页里 rAF 不触发） ---------- */
@@ -538,7 +630,7 @@
       if (n.nodeType !== 1) return;
       if (isOurs(n)) return;
       if (S.ui) walk(n);
-      if (S.trans) scheduleScan(n.closest ? (n.closest('.tweet-embed') || n) : n);
+      if (S.trans || S.copykw) scheduleScan(n.closest ? (n.closest('.tweet-embed') || n) : n);
     } catch (e) { /* 单个节点出错不影响其它 */ }
   }
 
@@ -597,6 +689,7 @@
       row('ui', '界面汉化', '按钮、菜单、设置项翻成中文（切换会刷新页面）'),
       row('reader', '阅读模式', '卡片收窄居中、图片缩小、行距放宽'),
       row('trans', '正文翻译', '推文 / 引用 / 回复正文翻成中文，附在原文下方'),
+      row('copykw', '点击关键词复制', '点推文里的高亮关键词（AI 预测名、关键词、CA）即复制'),
       '<div class="j7zh-row j7zh-row-sel"><span class="j7zh-txt"><b>翻译引擎</b><small>本地 = Chrome 内置离线翻译（快、无限流，需 Chrome 138+）；Google = 网页翻译接口（可能限流）</small></span>' +
         '<select id="j7zh-engine">' +
           '<option value="auto"' + (S.engine === 'auto' ? ' selected' : '') + '>自动（本地优先）</option>' +
@@ -629,6 +722,7 @@
       setFlag(LS[k], S[k]);
       if (k === 'ui') { location.reload(); return; }
       if (k === 'reader') applyReader();
+      if (k === 'copykw') applyCopyKw();
       if (k === 'trans') { applyTransFlag(); setStatus(TR.status); if (S.trans) scheduleScan(document.body); }
     });
     (document.body || document.documentElement).appendChild(m);
@@ -647,7 +741,7 @@
 
   /* ---------- 启动 ---------- */
   // 调试钩子（控制台可用 __j7zh.walk(document.body) 手动补扫，__j7zh.scan() 重扫翻译）
-  window.__j7zh = { walk, lookup, settings: S, version: '1.2.0', scan: () => scanUnits(document.body), tr: TR, local: LOCAL, engine: engineInUse, lastErr: null };
+  window.__j7zh = { walk, lookup, settings: S, version: '1.3.0', scan: () => scanUnits(document.body), tr: TR, local: LOCAL, engine: engineInUse, lastErr: null };
 
   document.addEventListener('pointerdown', () => { try { if (LOCAL.ok) LOCAL.retryOnGesture(); } catch (e) {} }, true);
   document.addEventListener('keydown', () => { try { if (LOCAL.ok) LOCAL.retryOnGesture(); } catch (e) {} }, true);
@@ -656,6 +750,7 @@
     mountToggle();
     applyReader();
     applyTransFlag();
+    applyCopyKw();
     if (S.ui) { try { walk(document.body); } catch (e) { console.error('[j7zh] walk failed', e); } }
     if (S.trans) scheduleScan(document.body);
   }
@@ -666,7 +761,7 @@
     setTimeout(firstPass, 800);
     setTimeout(firstPass, 3000);
     // 兜底：每 4 秒把缓存里已有的译文补回被重绘掉的卡片（只查 DOM，不发请求）
-    setInterval(() => { if (S.trans) scanUnits(document.body); }, 4000);
+    setInterval(() => { tagKeywords(document.body); if (S.trans) scanUnits(document.body); }, 4000);
   }
 
   if (document.readyState === 'loading') {
@@ -675,7 +770,7 @@
       firstPass();
       setTimeout(firstPass, 800);
       setTimeout(firstPass, 3000);
-      setInterval(() => { if (S.trans) scanUnits(document.body); }, 4000);
+      setInterval(() => { tagKeywords(document.body); if (S.trans) scanUnits(document.body); }, 4000);
     });
   } else {
     boot();

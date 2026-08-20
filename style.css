@@ -116,3 +116,28 @@ html.j7zh-reader .profile-card { max-width: 520px !important; }
 #j7zh-menu .j7zh-row-sel .j7zh-txt { flex: 1 1 auto; }
 #j7zh-menu select { flex: 0 0 auto; margin-left: 8px; max-width: 120px; font: 12px -apple-system, "PingFang SC", system-ui, sans-serif; color: #e5e7eb; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 3px 4px; }
 #j7zh-menu select option { color: #111; }
+
+/* ===== 点击关键词复制 ===== */
+html.j7zh-copykw .j7zh-kw { cursor: copy; transition: box-shadow .12s ease; pointer-events: auto !important; }
+html.j7zh-copykw .j7zh-kw:hover { box-shadow: 0 0 0 1.5px rgba(99,102,241,0.8); border-radius: 5px; }
+#j7zh-toast {
+  position: fixed;
+  z-index: 2147483647;
+  transform: translateX(-50%) translateY(4px);
+  padding: 5px 10px;
+  border-radius: 7px;
+  background: rgba(34,38,46,0.97);
+  border: 1px solid rgba(99,102,241,0.6);
+  color: #e8eaf0;
+  font: 12px/1.4 -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity .15s ease, transform .15s ease;
+  max-width: 320px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+}
+#j7zh-toast.j7zh-toast-show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#j7zh-toast.j7zh-toast-err { border-color: rgba(239,68,68,0.7); }
