@@ -19,12 +19,13 @@
     reader: 'j7zh_reader',     // 阅读模式     默认开
     trans: 'j7zh_autotrans',   // 正文翻译     默认开
     engine: 'j7zh_engine',     // 翻译引擎     auto | local | google
-    copykw: 'j7zh_copykw'      // 点击关键词复制 默认开
+    copykw: 'j7zh_copykw',     // 点击关键词复制 默认开
+    gmgn: 'j7zh_gmgn'          // 复制后打开 GMGN 搜索 默认开
   };
   const getFlag = (k, def) => { try { const v = localStorage.getItem(k); return v === null ? def : v !== '0'; } catch (e) { return def; } };
   const setFlag = (k, v) => { try { localStorage.setItem(k, v ? '1' : '0'); } catch (e) {} };
   const getStr = (k, def) => { try { return localStorage.getItem(k) || def; } catch (e) { return def; } };
-  const S = { ui: getFlag(LS.ui, true), reader: getFlag(LS.reader, true), trans: getFlag(LS.trans, true), engine: getStr(LS.engine, 'auto'), copykw: getFlag(LS.copykw, true) };
+  const S = { ui: getFlag(LS.ui, true), reader: getFlag(LS.reader, true), trans: getFlag(LS.trans, true), engine: getStr(LS.engine, 'auto'), copykw: getFlag(LS.copykw, true), gmgn: getFlag(LS.gmgn, true) };
   if (!/^(auto|local|google)$/.test(S.engine)) S.engine = 'auto';
 
   /* ---------- 字典索引 ---------- */
@@ -611,10 +612,16 @@
     if (!txt) return;
     e.preventDefault();
     e.stopPropagation();
+    const openGmgn = S.gmgn;
     copyTextToClipboard(txt).then((ok) => {
       const short = txt.length > 24 ? txt.slice(0, 24) + '…' : txt;
-      showToast(e.clientX, e.clientY, ok ? '已复制：' + short : '复制失败', ok);
+      showToast(e.clientX, e.clientY, ok ? (openGmgn ? '已复制，GMGN 搜索中：' : '已复制：') + short : '复制失败', ok);
     });
+    if (openGmgn) {
+      // 在用户手势里同步开新标签页（否则会被弹窗拦截）
+      // 命名窗口：始终复用同一个 GMGN 标签页（gmgn.js 监听 hashchange 处理后续搜索）
+      try { window.open('https://gmgn.ai/?chain=sol#j7q=' + encodeURIComponent(txt), 'j7zh_gmgn'); } catch (err) {}
+    }
   }, true);
 
   function applyCopyKw() {
@@ -690,6 +697,7 @@
       row('reader', '阅读模式', '卡片收窄居中、图片缩小、行距放宽'),
       row('trans', '正文翻译', '推文 / 引用 / 回复正文翻成中文，附在原文下方'),
       row('copykw', '点击关键词复制', '点推文里的高亮关键词（AI 预测名、关键词、CA）即复制'),
+      row('gmgn', '复制后 GMGN 搜索', '点关键词后自动新开 GMGN 标签页并搜索该词'),
       '<div class="j7zh-row j7zh-row-sel"><span class="j7zh-txt"><b>翻译引擎</b><small>本地 = Chrome 内置离线翻译（快、无限流，需 Chrome 138+）；Google = 网页翻译接口（可能限流）</small></span>' +
         '<select id="j7zh-engine">' +
           '<option value="auto"' + (S.engine === 'auto' ? ' selected' : '') + '>自动（本地优先）</option>' +
@@ -741,7 +749,7 @@
 
   /* ---------- 启动 ---------- */
   // 调试钩子（控制台可用 __j7zh.walk(document.body) 手动补扫，__j7zh.scan() 重扫翻译）
-  window.__j7zh = { walk, lookup, settings: S, version: '1.3.0', scan: () => scanUnits(document.body), tr: TR, local: LOCAL, engine: engineInUse, lastErr: null };
+  window.__j7zh = { walk, lookup, settings: S, version: '1.4.0', scan: () => scanUnits(document.body), tr: TR, local: LOCAL, engine: engineInUse, lastErr: null };
 
   document.addEventListener('pointerdown', () => { try { if (LOCAL.ok) LOCAL.retryOnGesture(); } catch (e) {} }, true);
   document.addEventListener('keydown', () => { try { if (LOCAL.ok) LOCAL.retryOnGesture(); } catch (e) {} }, true);
