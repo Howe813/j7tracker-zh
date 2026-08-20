@@ -98,7 +98,31 @@ async function translateBatch(texts, tl) {
   return { results };
 }
 
+/* ---- GMGN 后台搜索：不抢焦点地打开/复用 gmgn.ai 标签页 ---- */
+async function gmgnSearch(q, sender) {
+  const url = 'https://gmgn.ai/?chain=sol#j7q=' + encodeURIComponent(q);
+  const tabs = await chrome.tabs.query({ url: ['https://gmgn.ai/*', 'https://*.gmgn.ai/*'] });
+  // 优先复用与 j7 同窗口的 GMGN 标签页（比如用户开着分屏）
+  const senderWin = sender && sender.tab && sender.tab.windowId;
+  const existing = tabs.find((t) => t.windowId === senderWin) || tabs[0];
+  if (existing) {
+    // 只变 hash → same-document 导航，gmgn.js 的 hashchange 接手；active:false 不切走焦点
+    await chrome.tabs.update(existing.id, { url, active: false });
+    return { reused: true };
+  }
+  const createProps = { url, active: false };
+  if (sender && sender.tab) { createProps.windowId = sender.tab.windowId; createProps.index = sender.tab.index + 1; }
+  await chrome.tabs.create(createProps);
+  return { reused: false };
+}
+
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg && msg.type === 'j7zh-gmgn-search') {
+    gmgnSearch(String(msg.q || '').slice(0, 80), sender)
+      .then((r) => sendResponse({ ok: true, reused: r.reused }))
+      .catch((e) => sendResponse({ ok: false, error: String((e && e.message) || e) }));
+    return true;
+  }
   if (!msg || msg.type !== 'j7zh-translate-batch') return false;
   const tl = msg.tl || 'zh-CN';
   const texts = (Array.isArray(msg.texts) ? msg.texts : []).map((t) => String(t || '').slice(0, 4000));

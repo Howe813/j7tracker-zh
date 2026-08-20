@@ -57,23 +57,26 @@
     try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
     if (timer) { clearInterval(timer); timer = null; }
     let tries = 0;
-    timer = setInterval(() => {
+    const tick = () => {
       tries++;
-      if (tries > 60) { clearInterval(timer); timer = null; return; } // ~18 秒放弃
+      if (tries > 60) { if (timer) { clearInterval(timer); timer = null; } return true; } // ~18 秒放弃
 
-      // 弹窗已开：直接填
+      // 弹窗已开：直接填（完成）
       const header = findInput(HEADER_RE);
       const modalInp = findInput(MODAL_RE, header);
       if (modalInp) {
-        clearInterval(timer); timer = null;
+        if (timer) { clearInterval(timer); timer = null; }
         setReactInput(modalInp, kw);
         // 有些版本首次 input 会被防抖吞掉，稍后补一发
         setTimeout(() => { if (modalInp.isConnected && modalInp.value !== kw) setReactInput(modalInp, kw); }, 800);
-        return;
+        return true;
       }
       // 否则先点头部搜索框把弹窗打开
       if (header) tryOpen(header);
-    }, 300);
+      return false;
+    };
+    // 立即执行一次（后台标签页的 interval 会被浏览器节流，事件驱动这一次通常能直接填上）
+    if (!tick()) timer = setInterval(tick, 300);
   }
 
   // 首次加载 + 同一标签页被复用（只变 hash，不重新加载）都要触发
