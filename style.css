@@ -1,0 +1,118 @@
+/* ===== 中文在 flex 里会被拆成单字换行（CJK 可在任意字符间断行），按钮/标签按“整词”处理 ===== */
+button, [role="button"], [role="tab"], [role="menuitem"], label, th, option, select, summary,
+h1, h2, h3, h4, h5, h6, .header-button-text, .unified-category-btn, .unified-sidebar-group-label,
+[class*="-btn"], [class*="btn-"], [class*="button"], [class*="badge"], [class*="tab-"], [class*="-tab"] {
+  word-break: keep-all;
+}
+
+/* ===== 右下角按钮 ===== */
+#j7zh-toggle {
+  position: fixed;
+  right: 10px;
+  bottom: 34px;
+  z-index: 2147483647;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.18);
+  background: rgba(99,102,241,0.92);
+  color: #fff;
+  font: 600 12px/1 -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  cursor: pointer;
+  opacity: 0.55;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.35);
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity .15s ease, transform .15s ease;
+}
+#j7zh-toggle:hover { opacity: 1; transform: scale(1.08); }
+#j7zh-toggle[data-on="0"] { background: rgba(75,85,99,0.92); }
+
+/* ===== 菜单 ===== */
+#j7zh-menu {
+  position: fixed;
+  right: 10px;
+  bottom: 72px;
+  z-index: 2147483647;
+  width: 300px;
+  padding: 10px 12px 8px;
+  border-radius: 12px;
+  background: rgba(30,32,38,0.97);
+  color: #e5e7eb;
+  border: 1px solid rgba(255,255,255,0.1);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+  font: 13px/1.45 -apple-system, "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+}
+#j7zh-menu .j7zh-menu-title { font-weight: 700; font-size: 13px; margin: 0 0 6px; color: #c7d2fe; letter-spacing: .02em; }
+#j7zh-menu .j7zh-menu-foot { margin-top: 6px; font-size: 11px; color: rgba(229,231,235,0.45); }
+#j7zh-menu .j7zh-row { display: flex; align-items: flex-start; gap: 10px; padding: 7px 4px; cursor: pointer; border-radius: 8px; }
+#j7zh-menu .j7zh-row:hover { background: rgba(255,255,255,0.05); }
+#j7zh-menu .j7zh-row input { position: absolute; opacity: 0; width: 0; height: 0; }
+#j7zh-menu .j7zh-sw { flex: 0 0 auto; width: 34px; height: 20px; border-radius: 10px; background: rgba(255,255,255,0.18); position: relative; margin-top: 1px; transition: background .15s; }
+#j7zh-menu .j7zh-sw::after { content: ""; position: absolute; top: 2px; left: 2px; width: 16px; height: 16px; border-radius: 50%; background: #fff; transition: left .15s; }
+#j7zh-menu input:checked + .j7zh-sw { background: #6366f1; }
+#j7zh-menu input:checked + .j7zh-sw::after { left: 16px; }
+#j7zh-menu .j7zh-txt { display: flex; flex-direction: column; gap: 2px; }
+#j7zh-menu .j7zh-txt b { font-weight: 600; font-size: 13px; }
+#j7zh-menu .j7zh-txt small { font-size: 11px; color: rgba(229,231,235,0.6); line-height: 1.35; }
+
+/* ===== 正文译文块 ===== */
+.j7zh-trans {
+  margin: 4px 0 6px;
+  padding: 6px 10px 6px 10px;
+  border-left: 3px solid rgba(99,102,241,0.75);
+  background: rgba(99,102,241,0.08);
+  border-radius: 0 6px 6px 0;
+  color: #e8eaf0;
+  font-size: 15px;
+  line-height: 1.65;
+  white-space: pre-wrap;
+  word-break: break-word;
+  font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", "Segoe UI", system-ui, sans-serif;
+}
+.j7zh-trans::before {
+  content: "译";
+  display: inline-block;
+  font-size: 10px;
+  line-height: 1;
+  padding: 2px 4px;
+  margin-right: 6px;
+  border-radius: 3px;
+  background: rgba(99,102,241,0.85);
+  color: #fff;
+  vertical-align: 2px;
+  white-space: nowrap;
+}
+.j7zh-trans.j7zh-loading { opacity: 0.45; font-style: italic; }
+.quoted-tweet .j7zh-trans, .nested-quoted-tweet .j7zh-trans { font-size: 13.5px; margin: 4px 0 2px; }
+.profile-card .j7zh-trans { font-size: 13px; }
+html.j7zh-notrans .j7zh-trans { display: none !important; }
+
+/* ===== 阅读模式：收窄、紧凑、放宽行距 ===== */
+html.j7zh-reader .tweet-row { width: min(920px, 100%) !important; margin-left: auto !important; margin-right: auto !important; }
+html.j7zh-reader .tweet-embed { padding: 8px 14px 6px !important; margin: 0 0 4px !important; border-radius: 10px !important; }
+html.j7zh-reader .tweet-card { padding: 0 6px 2px !important; }
+html.j7zh-reader .tweet-author { height: auto !important; min-height: 0 !important; margin: 0 0 2px !important; }
+html.j7zh-reader .tweet-context-header { height: auto !important; min-height: 0 !important; margin: 0 0 6px !important; }
+html.j7zh-reader .tweet-content { font-size: 15.5px !important; line-height: 1.6 !important; }
+html.j7zh-reader .tweet-media, html.j7zh-reader .media-container { margin: 6px 0 6px !important; }
+html.j7zh-reader .media-image, html.j7zh-reader .video-preview, html.j7zh-reader .tweet-media img {
+  max-height: 200px !important; max-width: 300px !important; width: auto !important; height: auto !important; object-fit: contain !important;
+}
+html.j7zh-reader .tweet-media.grid-layout { max-width: 420px !important; }
+html.j7zh-reader .quoted-tweet, html.j7zh-reader .nested-quoted-tweet { font-size: 14px !important; padding: 6px 10px !important; margin: 6px 0 !important; }
+html.j7zh-reader .quoted-tweet .media-image { max-height: 140px !important; }
+html.j7zh-reader .tweet-context-header button { opacity: .35; transition: opacity .15s; }
+html.j7zh-reader .tweet-embed:hover .tweet-context-header button { opacity: 1; }
+/* AI 预测名的灰底小药丸改成细下划线，少打断阅读 */
+html.j7zh-reader .tweet-content span[style*="background"] { background: transparent !important; padding: 0 !important; border-bottom: 1px dotted rgba(255,255,255,.4); }
+html.j7zh-reader .profile-banner, html.j7zh-reader .banner-image { max-height: 110px !important; object-fit: cover !important; }
+html.j7zh-reader .profile-card { max-width: 520px !important; }
+
+/* 引擎选择行 */
+#j7zh-menu .j7zh-row-sel { align-items: center; justify-content: space-between; cursor: default; }
+#j7zh-menu .j7zh-row-sel .j7zh-txt { flex: 1 1 auto; }
+#j7zh-menu select { flex: 0 0 auto; margin-left: 8px; max-width: 120px; font: 12px -apple-system, "PingFang SC", system-ui, sans-serif; color: #e5e7eb; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 6px; padding: 3px 4px; }
+#j7zh-menu select option { color: #111; }
