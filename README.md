@@ -1,6 +1,6 @@
 # J7Tracker 中文界面
 
-> 让 [j7tracker.io](https://j7tracker.io) 好读的 Chrome 扩展：界面汉化 + 阅读模式 + 推文正文自动翻译。
+> 让 [j7tracker.io](https://j7tracker.io/@howe) 好读的 Chrome 扩展：界面汉化 + 阅读模式 + 推文正文自动翻译。
 
 J7Tracker 是一个实时社媒追踪器，但界面全英文、卡片巨宽、信息密度低。这个扩展把它改造成一个舒服的中文阅读器，三个功能都在页面右下角「中」按钮的菜单里独立开关，默认全开：
 
@@ -15,7 +15,9 @@ J7Tracker 是一个实时社媒追踪器，但界面全英文、卡片巨宽、�
 1. 下载本仓库（Code → Download ZIP 并解压，或 `git clone`）
 2. Chrome 打开 `chrome://extensions`，右上角开启「开发者模式」
 3. 点「加载已解压的扩展程序」，选择本文件夹
-4. 打开 / 刷新 j7tracker.io 即可
+4. 打开 / 刷新 [j7tracker.io](https://j7tracker.io/@howe) 即可
+
+> 还没有 J7Tracker 账号？从 [j7tracker.io/@howe](https://j7tracker.io/@howe) 进入并按提示加入 Discord 领取登录凭证。
 
 > 要求 Chrome 内置离线翻译可用需 **Chrome 138+**（更低版本自动退回 Google 接口）。首次翻译某个语种时 Chrome 会静默下载几 MB 的语言包，个别版本要求先在页面上点击一下才允许下载，点一下即可。
 
