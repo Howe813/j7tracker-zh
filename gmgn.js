@@ -50,11 +50,9 @@
       i !== exclude && re.test(i.placeholder || '') && i.getBoundingClientRect().width > 0);
   }
 
-  function run() {
-    const kw = currentKw();
+  function startSearch(kw) {
+    kw = String(kw || '').trim().slice(0, 80);
     if (!kw) return;
-    // 清掉标记，避免用户刷新时重复触发
-    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
     if (timer) { clearInterval(timer); timer = null; }
     let tries = 0;
     const tick = () => {
@@ -79,7 +77,23 @@
     if (!tick()) timer = setInterval(tick, 300);
   }
 
-  // 首次加载 + 同一标签页被复用（只变 hash，不重新加载）都要触发
+  function run() {
+    const kw = currentKw();
+    if (!kw) return;
+    // 清掉标记，避免用户刷新时重复触发
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
+    startSearch(kw);
+  }
+
+  // 三个入口：
+  // 1) 首次加载带 #j7q=（background 新建标签页时）
+  // 2) hash 变化（老版兜底路径）
+  // 3) bridge 转发的消息（常规路径：零导航、零刷新）
   window.addEventListener('hashchange', run);
+  window.addEventListener('message', (e) => {
+    if (e.source !== window) return;
+    const d = e.data;
+    if (d && typeof d.__j7zh_gmgn_q === 'string') startSearch(d.__j7zh_gmgn_q);
+  });
   run();
 })();

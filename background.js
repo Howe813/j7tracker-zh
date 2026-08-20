@@ -106,9 +106,15 @@ async function gmgnSearch(q, sender) {
   const senderWin = sender && sender.tab && sender.tab.windowId;
   const existing = tabs.find((t) => t.windowId === senderWin) || tabs[0];
   if (existing) {
-    // 只变 hash → same-document 导航，gmgn.js 的 hashchange 接手；active:false 不切走焦点
-    await chrome.tabs.update(existing.id, { url, active: false });
-    return { reused: true };
+    // 常规路径：直接给页面里的 bridge 发消息，原地搜索，零导航零刷新
+    try {
+      await chrome.tabs.sendMessage(existing.id, { type: 'j7zh-gmgn-q', q });
+      return { reused: true };
+    } catch (e) {
+      // 页面还没注入 bridge（扩展刚重载 / 标签页还在加载）→ 退回带 hash 的导航
+      await chrome.tabs.update(existing.id, { url, active: false });
+      return { reused: true };
+    }
   }
   const createProps = { url, active: false };
   if (sender && sender.tab) { createProps.windowId = sender.tab.windowId; createProps.index = sender.tab.index + 1; }

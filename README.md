@@ -9,7 +9,7 @@ J7Tracker 是一个实时社媒追踪器，但界面全英文、卡片巨宽、�
 | **界面汉化** | 900+ 条界面文案（按钮、菜单、设置、弹窗、提示）翻成中文；推文头部动词本地化（`@xxx 发布了 / 回复了 / 转发了 / 引用了 / 关注了`）；时间统一转 24 小时制。**不动**推文正文、币名代码、账号名、简介等用户内容 |
 | **阅读模式** | 卡片收窄到 920px 居中、图片缩小、行距放宽、次要按钮 hover 才显示、高亮药丸改细下划线 |
 | **点击关键词复制** | 站点会把关键词（AI 预测名、你设置的关键词、CA 等）标成高亮药丸——点一下即复制该词到剪贴板，弹「已复制」气泡；悬停有描边提示。站点原生没有这个能力（药丸默认 `pointer-events: none`，本扩展恢复了它的可点性） |
-| **复制后 GMGN 搜索** | 点关键词后在**后台**打开/复用 GMGN（gmgn.ai）标签页并在其搜索弹窗填入该词——不切走焦点，人留在 j7 继续看流，想看结果自己切过去（配合浏览器分屏体验最佳）。始终复用同一个标签页，不会越开越多。GMGN 首次打开搜索弹窗要求可信事件，本扩展通过直接调用其 React `onFocus` 处理函数绕过（`gmgn.js` 以 MAIN world 注入）；后台打开由 service worker 的 `tabs` API 完成（因此声明了 `tabs` 权限） |
+| **复制后 GMGN 搜索** | 点关键词后在**后台**打开/复用 GMGN（gmgn.ai）标签页并在其搜索弹窗填入该词——不切走焦点，人留在 j7 继续看流，想看结果自己切过去（配合浏览器分屏体验最佳）。始终复用同一个标签页，不会越开越多。GMGN 首次打开搜索弹窗要求可信事件，本扩展通过直接调用其 React `onFocus` 处理函数绕过（`gmgn.js` 以 MAIN world 注入）；后台打开由 service worker 的 `tabs` API 完成（因此声明了 `tabs` 权限）。已有 GMGN 页时**不做任何导航**——background 经 `gmgn-bridge.js` 直接发消息给页面原地换搜索词，零刷新 |
 | **正文翻译** | 推文 / 引用 / 回复 / 资料简介自动翻成中文，以「译」块附在原文下方。默认走 **Chrome 内置离线翻译**（Translator API，快、无限流、不出网），Google 网页接口兜底；带本地缓存，刷新不重翻 |
 
 ## 安装
@@ -52,7 +52,8 @@ J7Tracker 是一个实时社媒追踪器，但界面全英文、卡片巨宽、�
 | `dict.js` | 英→中字典：`exact` 精确匹配、`regex` 带数字/变量的模式（含 12→24 小时制转换）、`context` 推文头部动词、`inButton` 按钮内特殊译法 |
 | `content.js` | 界面汉化引擎（文本节点 + placeholder/title/aria-label，MutationObserver 跟 SPA 渲染，正文容器整体排除）+ 正文翻译调度（取文、去重、批量、插「译」块）+ 右下角菜单 |
 | `background.js` | service worker：代发 Google 翻译请求（批量、退避、缓存） |
-| `gmgn.js` | 注入 gmgn.ai（MAIN world）：读取 `#j7q=` 关键词，自动打开搜索弹窗并填入；监听 hashchange 支持标签页复用 |
+| `gmgn.js` | 注入 gmgn.ai（MAIN world）：自动打开搜索弹窗并填入关键词；入口有三个——首载 `#j7q=`、hashchange（兜底）、bridge 消息（常规，零导航） |
+| `gmgn-bridge.js` | 注入 gmgn.ai（isolated world）的消息桥：把 background 的搜索指令 postMessage 给 MAIN world 的 `gmgn.js` |
 | `style.css` | 阅读模式、译文块、菜单样式；以及让中文按钮按整词排版（CJK 会被 flex 拆成单字竖排）的 `word-break: keep-all` |
 
 ## 自己补翻译

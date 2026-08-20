@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "J7Tracker 中文界面",
   "short_name": "J7 中文",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "j7tracker.io 中文化：界面汉化 + 阅读模式 + 正文自动翻译 + 点关键词复制并一键 GMGN 搜索。右下角「中」按钮开关。",
   "icons": {
     "16": "icons/icon16.png",
@@ -40,6 +40,17 @@
         "style.css"
       ],
       "run_at": "document_start",
+      "all_frames": false
+    },
+    {
+      "matches": [
+        "https://gmgn.ai/*",
+        "https://*.gmgn.ai/*"
+      ],
+      "js": [
+        "gmgn-bridge.js"
+      ],
+      "run_at": "document_idle",
       "all_frames": false
     },
     {
